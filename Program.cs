@@ -3,7 +3,13 @@ using PuzzleArena;
 using PuzzleArena.Controllers;
 
 var arena = new Arena(
-    Level.Get(2),
+    Level.FromString(
+        "P   ",
+        "WWW ",
+        "    ",
+        " WWW",
+        "   G"
+    ),
     new AIController()
 );
 arena.Start();

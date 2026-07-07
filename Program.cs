@@ -39,114 +39,62 @@ public class AIController : Controller {
         }
     }
 
-    private void BFS(Level level, (int X, int Y) player, int universe) {
-        int SIZE = level.Tiles.Length;
-        int Start = player.Y * level.Width + player.X;
-        int Curr_Universe = universe;
+    private void BFS(Level level, (int X, int Y) player, int START_UNIVERSE) {
+        int WIDTH = level.Width;
+        int START = player.Y * WIDTH + player.X;
 
-        bool[] Visited = new bool[SIZE * COUNT_UNIVERSES];
-        var queue = new Queue<state>();
-        int[] Parents = new int[level.Tiles.Length * COUNT_UNIVERSES];
-        Array.Fill(Parents, -1);
+        //Data Structures for BFS implementation
+        var Visited = new Dictionary<State, ParentInfo>();
+        Queue<State> queue = new Queue<State>();
 
-        queue.Enqueue(new state(Start, Curr_Universe));
-        Visited[Start + (SIZE * (Curr_Universe - 1))] = true;
+        //Starting the queue for the BFS
+        State Start_State = new State(START, START_UNIVERSE)
+        queue.Enqueue(Start_State);
+        Visited.Add(
+            Start_State,
+            new ParentInfo();
+        );
 
-        bool AlreadyInGoal = true;
-        int GoalId = -1;
+        //Reaching for Neighbours
+        State Goal = new State();
         while (queue.Count != 0) {
-            state current = queue.Dequeue();
-
-            if (level.Tiles[current.index].IsGoal) {
-                GoalId = StateId(current, SIZE);
+            State Current = queue.Dequeue();
+            
+            //Finishing after finding the GOAL
+            if (level.Tile[Current.Index].IsGoal) {
+                Goal = Current;
                 break;
             }
-            AlreadyInGoal = false;
 
-            List<int> Offsets = new();
-            int n = current.index;
-            int RETURN = Start;
-                         //Start + (SIZE * (current.universe - 1))
-            switch (current.universe) {
-                case (int) UNIVERSE.NORMAL:
-                    Offsets.AddRange([RETURN, n-1, n+1, n+level.Width]);
-                    break;
-                case (int) UNIVERSE.GRAVITY:
-                    Offsets.AddRange([RETURN, n-1, n+1, n-level.Width]);
-                    break;
-                case (int) UNIVERSE.EVEN:
-                    Offsets.AddRange([RETURN, n-2, n+2, n+level.Width]);
-                    break;
-                case (int) UNIVERSE.SPACE:
-                    Offsets.AddRange([RETURN, n-1, n+1]);
-                    break;
-            }
+            //Verifying the RETURN option
 
-            foreach (int dir in Offsets) {
-                state next = new state(dir, current.universe);
+            //Going through each direction
+            int CURRENT_UNIVERSE = Current.Universe;
+            foreach () {
 
-                if (level.Tiles[next.index].IsPortal) {
-                    next.universe = level.Tiles[next.index].PortalUniverse;
-                }
-
-                if (level.Tiles[next.index].IsWall
-                    || Visited[StateId(next, SIZE)]) {
-                        continue;
-                }
-
-                Visited[StateId(next, SIZE)] = true;
-                queue.Enqueue(next);
-                Parents[StateId(next, SIZE)] = StateId(current, SIZE);
             }
         }
 
-        if (GoalId == -1 || AlreadyInGoal) {
-            this.Directions.Enqueue(MoveType.None);
-            return;
-        }
+        //Validate if GOAL was Found
 
-        var Res = new List<MoveType>();
-
-        int Prev = GoalId;
-        int Curr = GoalId;
-        while(Parents[Curr] != -1) {
-            Curr = Parents[Prev];
-
-            int dir = (Prev % SIZE) - (Curr % SIZE);
-            if ((Prev % SIZE) == Start) {
-                Res.Add(MoveType.Return);
-            } else if (dir == 1
-                || dir == 2) {
-                Res.Add(MoveType.Right);
-            } else if (dir == -1
-                        || dir == -2){
-                Res.Add(MoveType.Left);
-            } else if (Math.Abs(dir) == level.Width) {
-                Res.Add(MoveType.None);
-            }
-            Prev = Curr;
-        }
-
-        for (int i = Res.Count-1; i >= 0 ; i--) {
-            this.Directions.Enqueue(Res[i]);
-        }
-    }
-
-    private int StateId(state stat, int SIZE) {
-        return stat.index + (SIZE * (stat.universe - 1));
+        //Reconstructing Path
     }
 }
 
-struct state {
-    public int index;
-    public int universe;
+public struct State {
+    public int? Index;
+    public int? Universe;
 
-    public state(int index, int universe) {
-        this.index = index;
-        this.universe = universe;
+    public State () {}
+    public State (int index, int universe) {
+        this.Index = index;
+        this.Universe = universe;
     }
 }
 
-struct ParentInfo {
-    public MoveType Move;
+public struct ParentInfo {
+    public State? Parent;
+    public MoveType? Move;
+
+    public ParentInfo () {}
 }

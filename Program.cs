@@ -3,13 +3,22 @@ using PuzzleArena;
 using PuzzleArena.Controllers;
 
 var arena = new Arena(
-    Level.Get(1),
+    Level.Get(8),
     new AIController()
 );
 arena.Start();
 
+
+enum UNIVERSE {
+    NORMAL = 1,
+    GRAVITY = 2,
+    EVEN = 3,
+    SPACE = 4
+}
+
 public class AIController : Controller {
     private Queue<MoveType> Directions;
+    private const int COUNT_UNIVERSES = 4;
 
     public AIController () {
         this.Directions = new Queue<MoveType>();
@@ -31,63 +40,89 @@ public class AIController : Controller {
     }
 
     private void BFS(Level level, (int X, int Y) player, int universe) {
+        int SIZE = level.Tiles.Length;
         int Start = player.Y * level.Width + player.X;
+        int Curr_Universe = universe;
 
-        bool[,] Visited = new bool[level.Tiles.Length, 2];
+        bool[] Visited = new bool[SIZE * COUNT_UNIVERSES];
         var queue = new Queue<state>();
-        int[,] Parents = new int[level.Tiles.Length, 2];
+        int[] Parents = new int[level.Tiles.Length * COUNT_UNIVERSES];
         Array.Fill(Parents, -1);
 
-        queue.Enqueue(new state(Start, universe));
-        Visited[Start, universe] = true;
+        queue.Enqueue(new state(Start, Curr_Universe));
+        Visited[Start + (SIZE * (Curr_Universe - 1))] = true;
 
         bool AlreadyInGoal = true;
-        state Goal = new state(-1, 1);
+        int GoalId = -1;
         while (queue.Count != 0) {
             state current = queue.Dequeue();
 
             if (level.Tiles[current.index].IsGoal) {
-                Goal.index = current.index;
-                Goal.universe = current.universe;
+                GoalId = StateId(current, SIZE);
                 break;
             }
             AlreadyInGoal = false;
 
-            int gravity = current.universe == 1 ? level.Width : -level.Width;
-            List<int> Offsets = [-1, 1, gravity];
-            foreach (int dir in Offsets) {
-                state next = new state(current.index + dir, current.universe);
+            List<int> Offsets = new();
+            int n = current.index;
+            int RETURN = Start;
+                         //Start + (SIZE * (current.universe - 1))
+            switch (current.universe) {
+                case (int) UNIVERSE.NORMAL:
+                    Offsets.AddRange([RETURN, n-1, n+1, n+level.Width]);
+                    break;
+                case (int) UNIVERSE.GRAVITY:
+                    Offsets.AddRange([RETURN, n-1, n+1, n-level.Width]);
+                    break;
+                case (int) UNIVERSE.EVEN:
+                    Offsets.AddRange([RETURN, n-2, n+2, n+level.Width]);
+                    break;
+                case (int) UNIVERSE.SPACE:
+                    Offsets.AddRange([RETURN, n-1, n+1]);
+                    break;
+            }
 
-                if (level.Tiles[next.index].IsWall
-                    || Visited[next]) {
-                        continue;
-                }
+            foreach (int dir in Offsets) {
+                state next = new state(dir, current.universe);
 
                 if (level.Tiles[next.index].IsPortal) {
                     next.universe = level.Tiles[next.index].PortalUniverse;
                 }
 
-                Visited[next.index, next.universe] = true;
+                if (level.Tiles[next.index].IsWall
+                    || Visited[StateId(next, SIZE)]) {
+                        continue;
+                }
+
+                Visited[StateId(next, SIZE)] = true;
                 queue.Enqueue(next);
-                Parents[next.index, next.universe] = current;
+                Parents[StateId(next, SIZE)] = StateId(current, SIZE);
             }
         }
 
-        if (Goal.index == -1 || AlreadyInGoal) {
+        if (GoalId == -1 || AlreadyInGoal) {
             this.Directions.Enqueue(MoveType.None);
             return;
         }
 
         var Res = new List<MoveType>();
 
-        state Prev = Goal;
-        state Curr = Goal;
-        while(Parents[Curr.index, Curr.universe] != -1) {
-            Curr = Parents[Prev.index, Prev.universe];
-            if (Curr.index < Prev.index) {
+        int Prev = GoalId;
+        int Curr = GoalId;
+        while(Parents[Curr] != -1) {
+            Curr = Parents[Prev];
+
+            int dir = (Prev % SIZE) - (Curr % SIZE);
+            if ((Prev % SIZE) == Start) {
+                Res.Add(MoveType.Return);
+            } else if (dir == 1
+                || dir == 2) {
                 Res.Add(MoveType.Right);
-            } else {
+            } else if (dir == -1
+                        || dir == -2){
                 Res.Add(MoveType.Left);
+            } else if (Math.Abs(dir) == level.Width) {
+                Res.Add(MoveType.None);
             }
             Prev = Curr;
         }
@@ -95,6 +130,10 @@ public class AIController : Controller {
         for (int i = Res.Count-1; i >= 0 ; i--) {
             this.Directions.Enqueue(Res[i]);
         }
+    }
+
+    private int StateId(state stat, int SIZE) {
+        return stat.index + (SIZE * (stat.universe - 1));
     }
 }
 
@@ -106,4 +145,8 @@ struct state {
         this.index = index;
         this.universe = universe;
     }
+}
+
+struct ParentInfo {
+    public MoveType Move;
 }

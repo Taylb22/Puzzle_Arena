@@ -8,14 +8,6 @@ var arena = new Arena(
 );
 arena.Start();
 
-
-enum UNIVERSE {
-    NORMAL = 1,
-    GRAVITY = 2,
-    EVEN = 3,
-    SPACE = 4
-}
-
 public class AIController : Controller {
     private Queue<MoveType> Directions;
 

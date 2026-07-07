@@ -18,7 +18,6 @@ enum UNIVERSE {
 
 public class AIController : Controller {
     private Queue<MoveType> Directions;
-    private const int COUNT_UNIVERSES = 4;
 
     public AIController () {
         this.Directions = new Queue<MoveType>();
